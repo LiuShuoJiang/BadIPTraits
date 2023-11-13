@@ -5,8 +5,9 @@ def main():
     print("test")
     db = database.DataBase()
     
-    db.getIPs(file_path="opendbl_etknown.txt")
-
+    result = db.categorizeIPsByCharacter(f_path="reform_hosts_results.json", character="location.country")
+    db.writeDictToJsonFile(d=result, f_name="country.json")
+    
 
 if __name__ == "__main__":
     main()
