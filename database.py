@@ -16,22 +16,25 @@ class DataBase(object):
         print(str(ip_list))
         
     def formatJson(self, f_path: str):
-        # TODO: read data as string, then modify
-        # find all "}{"
-        #{
-            # "foo": [
-            #   {},  
-            # ]
-        #}
+        f = open(f_path, 'r')
+        lines = f.readlines()
+        new_content ="{\n\t\"data\": [\n"
         
-        # with open(f_path, "r+") as f:
-        #     for 
-        return 0
+        for l in lines:
+            if '\"body\": ' in l: 
+                continue
+            elif('}{' in l):
+                l='\t\t},\n\t\t{'    
+            else:
+                l = '\t\t' + l
+            new_content = new_content + l 
         
-    def categorizeIPsByCharacter(self, f_path: str, character: str):
+        new_content = new_content + '\n\t]\n}'
+        return new_content
+        
+    def categorizeIPsByCharacter(self, f_path: str, character: str, result: dict):
         
         count = 0
-        result = {'char not found': []}
         character_list = character.split(".")
         with open(f_path, "r") as f:
             j_data = json.load(f)
@@ -57,29 +60,28 @@ class DataBase(object):
                             if ('X_XSS_Protection' in character_list[4]):
                                 if ('X_XSS_Protection' in headers_dict.keys()):
                                     if '0' in headers_dict['X_XSS_Protection'][0]:
-                                        c_vals[0] = 'X_XSS_Protection OFF'
+                                        # c_vals[0] = 'X_XSS_Protection OFF'
+                                        if ('X_XSS_Protection OFF' in c_vals): continue
+                                        c_vals.append('X_XSS_Protection OFF')
                                     elif '1' in headers_dict['X_XSS_Protection'][0]:
-                                        c_vals[0] = 'X_XSS_Protection ON'
+                                        # c_vals[0] = 'X_XSS_Protection ON'
+                                        if ('X_XSS_Protection ON' in c_vals): continue
+                                        c_vals.append('X_XSS_Protection ON')
                                     else:
-                                        c_vals[0] = 'X_XSS_Protection UNKNOWN'
+                                        if ('X_XSS_Protection UNKNOWN' in c_vals): continue
+                                        c_vals.append('X_XSS_Protection UNKNOWN')
                                 elif ('X_Xss_Protection' in headers_dict.keys()):
                                     if '0' in headers_dict['X_Xss_Protection'][0]:
-                                        c_vals[0] = 'X_XSS_Protection OFF'
+                                        if ('X_XSS_Protection OFF' in c_vals): continue
+                                        c_vals.append('X_XSS_Protection OFF')
                                     elif '1' in headers_dict['X_Xss_Protection'][0]:
-                                        c_vals[0] = 'X_XSS_Protection ON'
+                                        if ('X_XSS_Protection ON' in c_vals): continue
+                                        c_vals.append('X_XSS_Protection ON')
                                     else:
-                                        c_vals[0] = 'X_XSS_Protection UNKNOWN'
+                                        if ('X_XSS_Protection UNKNOWN' in c_vals): continue
+                                        c_vals.append('X_XSS_Protection UNKNOWN')
                                 else:
                                     continue
-                                # if('X_XSS_Protection' not in headers_dict.keys() and 'X_Xss_Protection' not in headers_dict.keys()):
-                                #     continue
-                                # else:
-                                #     if '0' in headers_dict['X_XSS_Protection'][0]:
-                                #         c_val = 'X_XSS_Protection OFF'
-                                #     elif '1' in headers_dict['X_XSS_Protection'][0]:
-                                #         c_val = 'X_XSS_Protection ON'
-                                #     else:
-                                #         c_val = 'X_XSS_Protection UNKNOWN'
                             elif ('Content_Security_Policy' in character_list[4]):
                                 if('Content_Security_Policy' not in headers_dict.keys()):
                                     continue
@@ -120,23 +122,32 @@ class DataBase(object):
                             if (serv['extended_service_name'] in c_vals): continue
                             c_vals.append(serv['extended_service_name'])
                             #an ip can have multiple services
+                        elif serv_name == 'transport_protocol':
+                            if ('transport_protocol' not in serv.keys()): continue
+                            if (serv['transport_protocol'] in c_vals): continue
+                            c_vals.append(serv['transport_protocol'])
+                            #an ip can have multiple services
                 elif 'location' in character_list[0] and 'services' in ip_item.keys():
                     loc_dict = ip_item['location']
                     if ('country' in character_list[1]):
                         if ('country' not in loc_dict.keys()): continue
-                        c_vals[0] = loc_dict['country']
+                        c_vals.append(loc_dict['country'])
                     elif ('province' in character_list[1]):
                         if ('province' not in loc_dict.keys()): continue
-                        c_vals[0] = loc_dict['province']
+                        c_vals.append(loc_dict['province'])
                     elif ('city' in character_list[1]):
                         if ('city' not in loc_dict.keys()): continue
-                        c_vals[0] = loc_dict['city']
+                        c_vals.append(loc_dict['city'])
+                
+                if (len(c_vals) > 1): 
+                    c_vals = c_vals[1:]
                 
                 for c in c_vals:
                     if c not in result.keys():
                         result[c] = []
+                    if(ip_addr in result[c]): continue 
                     result[c].append(ip_addr)
-                count += 1
+                    count += 1
         
         print("count: " + str(count))
         return result
